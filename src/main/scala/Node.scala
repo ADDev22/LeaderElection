@@ -45,9 +45,12 @@ class Node (val id:Int, val terminaux:List[Terminal]) extends Actor {
                displayActor ! Message (content)
           }
 
-          case BeatLeader (nodeId) => allNodes.foreach(remote => {
-               remote ! IsAliveLeader(nodeId)
+          case BeatLeader (nodeId) => {
+               allNodes.foreach(remote => {
+                    remote ! IsAliveLeader(nodeId)
+                    println("Yes")
                })
+          }
           case Beat (nodeId) => allNodes.foreach(remote => {
                remote ! IsAlive(nodeId)
           })

@@ -29,7 +29,6 @@ class BeatActor (val id:Int) extends Actor {
                   father ! Message ("I am the leader")
              }
         }
-
         // Objectif : prevenir tous les autres nodes qu'on est en vie
         case BeatTick => {
           if(id == leader) father ! BeatLeader(id)
