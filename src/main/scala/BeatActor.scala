@@ -24,6 +24,7 @@ class BeatActor (val id:Int) extends Actor {
 
          // Initialisation
         case Start => {
+          father ! Message("BeatActor start ...")
              self ! BeatTick
              if (this.id == this.leader) {
                   father ! Message ("I am the leader")

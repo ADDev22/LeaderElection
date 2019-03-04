@@ -7,6 +7,7 @@ import akka.actor._
 
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.Random
 
 abstract class Tick
 case class CheckerTick () extends Tick
@@ -15,9 +16,9 @@ class CheckerActor (val id:Int, val terminaux:List[Terminal], electionActor:Acto
 
      var time : Int = 200
      val father = context.parent
-     val schedule = context.system.scheduler.schedule(0 milliseconds, time milliseconds, self, CheckerTick)
+     val schedule = context.system.scheduler.schedule(time milliseconds, time milliseconds, self, CheckerTick)
 
-     var nodesAlive:List[Int] = List()
+     var nodesAlive:List[Int] = List(id)
      var datesForChecking:Map[Int, Date] = Map()
      var lastDate:Date = new Date()
 
@@ -34,21 +35,22 @@ class CheckerActor (val id:Int, val terminaux:List[Terminal], electionActor:Acto
         // A chaque fois qu'on recoit un Beat : on met a jour la liste des nodes
         case IsAlive (nodeId) =>{
           if(nodesAlive.indexOf(nodeId) == -1) nodesAlive = nodeId::nodesAlive
-           datesForChecking.updated(nodeId, new  Date())
+          datesForChecking =  datesForChecking.updated(nodeId, new  Date())
         }
 
         case IsAliveLeader (nodeId) => {
           leader = nodeId
           if(nodesAlive.indexOf(nodeId) == -1) nodesAlive = nodeId::nodesAlive
-          datesForChecking.updated(nodeId, new  Date())
+          datesForChecking = datesForChecking.updated(nodeId, new  Date())
         }
 
         // A chaque fois qu'on recoit un CheckerTick : on verifie qui est mort ou pas
         // Objectif : lancer l'election si le leader est mort
         case CheckerTick => {
+          lastDate = new Date()
           var deadNodes:List[Int] = List()
           for ((nodeId,date) <- datesForChecking) {
-            if( date.getTime - lastDate.getTime > 3* time ) {
+            if( lastDate.getTime - date.getTime > 3 * time && nodeId != id ) {
               deadNodes = nodeId::deadNodes
              }
           }
@@ -57,9 +59,13 @@ class CheckerActor (val id:Int, val terminaux:List[Terminal], electionActor:Acto
             if(leader == e) leaderIsDead = true
             datesForChecking = datesForChecking - e
             nodesAlive = nodesAlive.filter(_ != e)
-            father ! Message("The Node : "+ e + "is dead")
+            father ! Message("The Node : " + e + " is dead")
           })
-          if(leaderIsDead) electionActor ! Start
+          nodesAlive = nodesAlive.sorted
+          if(leaderIsDead) {
+            father ! Message("The leader is dead")
+            electionActor ! StartWithNodeList(nodesAlive)
+          }
         }
     }
 

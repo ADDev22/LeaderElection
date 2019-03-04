@@ -48,7 +48,6 @@ class Node (val id:Int, val terminaux:List[Terminal]) extends Actor {
           case BeatLeader (nodeId) => {
                allNodes.foreach(remote => {
                     remote ! IsAliveLeader(nodeId)
-                    println("Yes")
                })
           }
           case Beat (nodeId) => allNodes.foreach(remote => {
@@ -61,6 +60,12 @@ class Node (val id:Int, val terminaux:List[Terminal]) extends Actor {
 
           // Message indiquant que le leader a change
           case LeaderChanged (nodeId) => beatActor ! LeaderChanged(nodeId)
+               
+          case ALG (list, init) => electionActor ! ALG(list,init)
+          case AVS (list, j) => electionActor ! AVS(list,j)
+          case AVSRSP (list, k) => electionActor ! AVSRSP(list,k)
+          case  Init => electionActor ! Init
+
 
      }
 

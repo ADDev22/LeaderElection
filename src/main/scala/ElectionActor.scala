@@ -17,6 +17,8 @@ case class AVSRSP (list:List[Int], nodeId:Int) extends LeaderAlgoMessage
 
 case class StartWithNodeList (list:List[Int])
 
+case class Init ()
+
 class ElectionActor (val id:Int, val terminaux:List[Terminal]) extends Actor {
 
      val father = context.parent
@@ -28,19 +30,19 @@ class ElectionActor (val id:Int, val terminaux:List[Terminal]) extends Actor {
     var allNodes:Map[Int,ActorSelection] = Map()
 
      terminaux.foreach(n => {
-          if (n.id != id) {
                val remote = context.actorSelection("akka.tcp://LeaderSystem" + n.id + "@" + n.ip + ":" + n.port + "/user/Node")
                // Mise a jour de la liste des nodes
                allNodes = allNodes + (n.id -> remote)
-          }
+
      })
-     def neigh : Int =  nodesAlive((nodesAlive.indexOf(id)+1)% nodesAlive.size)
+     def neigh : Int =  nodesAlive( ( (nodesAlive.indexOf(id)) +1) % nodesAlive.size )
 
 
      def receive = {
 
           // Initialisation
           case Start => {
+            father ! Message("ElectionActor start ...")
                self ! Initiate
           }
 
@@ -68,7 +70,7 @@ class ElectionActor (val id:Int, val terminaux:List[Terminal]) extends Actor {
                     status = new Dummy()
                     allNodes(neigh) ! ALG(nodesAlive, init)
                }
-               else if(status.isInstanceOf[Candidate]){
+               if(status.isInstanceOf[Candidate]){
                     candPred = init
                     if(id > init) {
                          if(candSucc == -1){
@@ -80,9 +82,12 @@ class ElectionActor (val id:Int, val terminaux:List[Terminal]) extends Actor {
                               status = new Dummy()
                          }
                     }
-                    else if (id == init) {
+                    if (id == init) {
                          status = new Leader()
-                         father ! Message("I am the Leader")
+                         allNodes.foreach(r=>
+                         r._2 ! Init )
+                         father ! LeaderChanged (id)
+
                     }
                }
           }
@@ -98,7 +103,7 @@ class ElectionActor (val id:Int, val terminaux:List[Terminal]) extends Actor {
                               status = new  Dummy()
                          }
                     }
-               else if (status.isInstanceOf[Waiting]){
+               if (status.isInstanceOf[Waiting]){
                          candSucc = j
                     }
                }
@@ -108,7 +113,10 @@ class ElectionActor (val id:Int, val terminaux:List[Terminal]) extends Actor {
                nodesAlive = list
                if(status.isInstanceOf[Waiting]){
                     if(id == k) {
-                         status = new Leader()
+                      status = new Leader()
+                      allNodes.foreach(r=>
+                        r._2 ! Init )
+                      father ! LeaderChanged (id)
                     }
                     else {
                          candPred = k
@@ -119,11 +127,16 @@ class ElectionActor (val id:Int, val terminaux:List[Terminal]) extends Actor {
                               }
                          }
                          else {
-                                   status = new Waiting()
+                                   status = new Dummy()
                                    allNodes(candSucc) ! AVSRSP(list,k)
                               }
                     }
                }
+          }
+          case Init => {
+                        status = new Passive()
+                        candSucc = -1
+                        candPred = -1
           }
 
      }
