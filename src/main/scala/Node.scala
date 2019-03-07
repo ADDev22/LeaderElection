@@ -59,7 +59,10 @@ class Node (val id:Int, val terminaux:List[Terminal]) extends Actor {
           case IsAliveLeader (id) => checkerActor ! IsAliveLeader(id)
 
           // Message indiquant que le leader a change
-          case LeaderChanged (nodeId) => beatActor ! LeaderChanged(nodeId)
+          case LeaderChanged (nodeId) => {
+               beatActor ! LeaderChanged(nodeId)
+               checkerActor ! LeaderChanged(nodeId)
+          }
                
           case ALG (list, init) => electionActor ! ALG(list,init)
           case AVS (list, j) => electionActor ! AVS(list,j)

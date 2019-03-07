@@ -38,8 +38,9 @@ class BeatActor (val id:Int) extends Actor {
         case LeaderChanged (nodeId) => {
           leader = nodeId
           if (this.id == this.leader) {
-            father ! Message ("I am the new leader after Election")
+            father ! Message ("I am the new leader after Election ...")
           }
+          else father ! Message("Leader is changed, the new is "+ nodeId+ "...")
         }
 
     }

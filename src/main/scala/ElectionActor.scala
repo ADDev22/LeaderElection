@@ -83,10 +83,15 @@ class ElectionActor (val id:Int, val terminaux:List[Terminal]) extends Actor {
                          }
                     }
                     if (id == init) {
-                         status = new Leader()
-                         allNodes.foreach(r=>
-                         r._2 ! Init )
-                         father ! LeaderChanged (id)
+                        status = new Leader()
+                        father ! LeaderChanged (id)
+                        allNodes.foreach(r=>{
+                          if(r._1 != id ) {
+                            r._2 ! Init
+                            r._2 ! LeaderChanged(id)
+                          }
+                        }
+                        )
 
                     }
                }
@@ -114,9 +119,14 @@ class ElectionActor (val id:Int, val terminaux:List[Terminal]) extends Actor {
                if(status.isInstanceOf[Waiting]){
                     if(id == k) {
                       status = new Leader()
-                      allNodes.foreach(r=>
-                        r._2 ! Init )
                       father ! LeaderChanged (id)
+                      allNodes.foreach(r=>{
+                        if(r._1 != id ) {
+                          r._2 ! Init
+                          r._2 ! LeaderChanged(id)
+                        }
+                      }
+                      )
                     }
                     else {
                          candPred = k
